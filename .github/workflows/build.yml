@@ -7,16 +7,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: 'temurin', java-version: '17' }
-      - name: Setup Android
-        uses: android-actions/setup-android@v3
-      - name: Fix project structure
+      - uses: gradle/actions/setup-gradle@v3
+      - name: Build structure
         run: |
           mkdir -p app/src/main/java/com/fazenda50/screen
           mkdir -p app/src/main/res/xml
-          cp MainActivity.kt app/src/main/java/com/fazenda50/screen/ 2>/dev/null || mv MainActivity.kt app/src/main/java/com/fazenda50/screen/ || true
-          cp ScreenService.kt app/src/main/java/com/fazenda50/screen/ 2>/dev/null || mv ScreenService.kt app/src/main/java/com/fazenda50/screen/ || true
-          cp ClickService.kt app/src/main/java/com/fazenda50/screen/ 2>/dev/null || mv ClickService.kt app/src/main/java/com/fazenda50/screen/ || true
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          mv MainActivity.kt app/src/main/java/com/fazenda50/screen/ 2>/dev/null || cp MainActivity.kt app/src/main/java/com/fazenda50/screen/
+          mv ScreenService.kt app/src/main/java/com/fazenda50/screen/ 2>/dev/null || cp ScreenService.kt app/src/main/java/com/fazenda50/screen/
+          mv ClickService.kt app/src/main/java/com/fazenda50/screen/ 2>/dev/null || cp ClickService.kt app/src/main/java/com/fazenda50/screen/
+          cat > app/src/main/AndroidManifest.xml << 'MANI'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.fazenda50.screen">
             <uses-permission android:name="android.permission.INTERNET"/>
@@ -33,38 +32,22 @@ jobs:
               </service>
             </application>
           </manifest>
-          EOF
-          cat > app/src/main/res/xml/accessibility.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android" android:canPerformGestures="true" android:accessibilityFeedbackType="feedbackGeneric"/>
-          EOF
-      - name: Create Gradle Wrapper
-        run: |
-          cat > build.gradle << 'EOF'
-          plugins { id 'com.android.application' version '8.2.0' apply false }
-          EOF
-          cat > settings.gradle << 'EOF'
+          MANI
+          echo '<?xml version="1.0" encoding="utf-8"?><accessibility-service xmlns:android="http://schemas.android.com/apk/res/android" android:canPerformGestures="true"/>' > app/src/main/res/xml/accessibility.xml
+          cat > settings.gradle << 'SET'
           include ':app'
-          EOF
-          cat > app/build.gradle << 'EOF'
+          SET
+          cat > build.gradle << 'B1'
+          plugins { id 'com.android.application' version '8.1.0' apply false }
+          B1
+          cat > app/build.gradle << 'B2'
           plugins { id 'com.android.application' }
-          android {
-              namespace 'com.fazenda50.screen'
-              compileSdk 34
-              defaultConfig { applicationId "com.fazenda50.screen"; minSdk 26; targetSdk 34; versionCode 3; versionName "3.0" }
-              buildTypes { release { minifyEnabled false } }
-              compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
-          }
-          dependencies {
-              implementation 'org.java-websocket:Java-WebSocket:1.5.3'
-              implementation 'org.slf4j:slf4j-api:1.7.36'
-          }
-          EOF
-          gradle wrapper
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+          android { namespace 'com.fazenda50.screen'; compileSdk 34; defaultConfig { applicationId "com.fazenda50.screen"; minSdk 26; targetSdk 34; versionCode 1; versionName "1.0" }; buildTypes { release { minifyEnabled false } } }
+          dependencies { implementation 'org.java-websocket:Java-WebSocket:1.5.3'; implementation 'org.slf4j:slf4j-api:1.7.36' }
+          B2
+      - name: Build APK
+        run: gradle :app:assembleDebug
+      - uses: actions/upload-artifact@v4
         with:
           name: Fazenda-50-APK
           path: app/build/outputs/apk/debug/*.apk
