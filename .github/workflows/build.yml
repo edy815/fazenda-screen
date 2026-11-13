@@ -1,0 +1,22 @@
+name: Build APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+      - uses: android-actions/setup-android@v3
+      - run: |
+          mkdir -p app/src/main/java/com/fazenda50/screen
+          mv MainActivity.kt app/src/main/java/com/fazenda50/screen/ || true
+          mv ScreenService.kt app/src/main/java/com/fazenda50/screen/ || true
+          mv ClickService.kt app/src/main/java/com/fazenda50/screen/ || true
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.fazenda50.screen"><uses-permission android:name="android.permission.INTERNET"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION"/><application android:label="Fazenda-50"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity><service android:name=".ScreenService" android:foregroundServiceType="mediaProjection"/><service android:name=".ClickService" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="true"><intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter><meta-data android:name="android.accessibilityservice" android:resource="@xml/accessibility"/></service></application></manifest>' > app/src/main/AndroidManifest.xml
+          mkdir -p app/src/main/res/xml
+          echo '<?xml version="1.0" encoding="utf-8"?><accessibility-service xmlns:android="http://schemas.android.com/apk/res/android" android:canPerformGestures="true" android:accessibilityFeedbackType="feedbackGeneric"/>' > app/src/main/res/xml/accessibility.xml
+      - run: chmod +x gradlew 2>/dev/null || true; if [ ! -f gradlew ]; then gradle wrapper; fi
+      - run: ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with: { name: 'Fazenda-50-APK', path: app/build/outputs/apk/debug/*.apk }
